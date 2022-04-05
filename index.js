@@ -1,7 +1,7 @@
 const puppeteer = require('puppeteer');
 const replaceAll = require('string.prototype.replaceall');
 const dns = require("dns");
-
+var IPGeolocationAPI = require('ip-geolocation-api-javascript-sdk');
 
 
 
@@ -71,56 +71,43 @@ const dns = require("dns");
    arr[index] = arr[index].replace(' ','+')
    let valor = arr[index] 
    if(index === 0){valor = `${arr[index]}+provedor+de+internet+acre`}
-  if (index === 10) { valor = `${arr[index]}+provedor+de+internet+mato+grosso` }
+    if (index === 10) { valor = `${arr[index]}+provedor+de+internet+mato+grosso` }
    await page.goto(`https://www.google.com/search?q=${valor}&rlz=1C1GCEU_pt-BRBR999BR999&oq=vivo&aqs=chrome..69i57j46i199i291i433i512j0i433i512l2j0i131i433i512j0i433i512j69i61l2.574j0j7&sourceid=chrome&ie=UTF-8`);
    htmlSite = await page.evaluate(() => {
      return {
       siteProvedor : document.querySelector('.iUh30.tjvcx').innerHTML}
    });
-  sites.push(htmlSite.siteProvedor)
+  sites.push(htmlSite.siteProvedor.replace('https://',''))
  }
  const page2 = await browser.newPage();
  await page2.setDefaultNavigationTimeout(0); 
 
 
- let valor = ''
-  let urlsIps = ''
-  let ip = ''
   let ips = []
-
-  {/*sites.map(e=>
-    valor = e,
-    valorUpdated = valor.replace('https://',''),
-    hosts = [valorUpdated],
-    hosts.forEach(function (host) {
-    ping.promise.probe(host)
-        .then(function (res) {
-          e = res.numeric_host
-        });        
-    }),
-    console.log(ip),
-    ips.push(ip)
-  )*/}
-  let url = "";
-  var e=[]
-  for (let index = 0; index < 1; index++) {
-    valor = sites[index]
-    valorUpdated = valor.replace('https://','')
-    url = valorUpdated
-
-    dns.resolve4(url, (err, addresses) => {
-    if (err) {
-    console.err(err);
-    return;
-    }
-    await page2.goto(`https://www.ipvoid.com/ip-to-asn/`)  
-    await page2.type('.form-control', addresses[0])
+  let asn = ''
+  
+  for (let index = 0; index < sites.length; index++) {
+    await page2.goto(`https://ipgeolocation.io/ip-location/${sites[index]}`);  
+    htmlSite = await page.evaluate(() => {
+      return {
+       ip : document.querySelector('#ipaddrs').innerHTML}
+    });
+    await page2.goto(`https://ipinfo.io/${htmlSite.ip}`);
     await page2.screenshot({ path: 'example.png' });
 
-     
-});
-    }
- console.log(e)
+    asn = await page2.evaluate(() => {
+      return {
+       asnCode : document.querySelector('.table.table-striped.table-borderless.table-sm.two-column-table.mb-0 a').innerHTML,
+       company: document.querySelector('tbody :nth-child(4) :nth-child(2)').innerHTML,
+       email: document.querySelector('tbody :nth-child(9) :nth-child(2) a').innerHTML,
+       city: document.querySelector('table.table-borderless.table-xs.geo-table tbody :nth-child(1) :nth-child(2)').innerHTML,
+       state: document.querySelector('table.table-borderless.table-xs.geo-table tbody :nth-child(2) :nth-child(2)').innerHTML,
+       country: document.querySelector('table.table-borderless.table-xs.geo-table tbody :nth-child(3) :nth-child(2) a').innerHTML,
+       Postal_Code: document.querySelector('table.table-borderless.table-xs.geo-table tbody :nth-child(4) :nth-child(2)').innerHTML,       
+      }
+    });
+    ips.push(asn)
+  }
   
  await browser.close();
 
