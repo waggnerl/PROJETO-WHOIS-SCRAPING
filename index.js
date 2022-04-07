@@ -1,14 +1,7 @@
 const puppeteer = require('puppeteer');
 const replaceAll = require('string.prototype.replaceall');
-const dns = require("dns");
-var IPGeolocationAPI = require('ip-geolocation-api-javascript-sdk');
-
-
 
 (async () => {
-  
-
-
   const browser = await puppeteer.launch();
   const page = await browser.newPage();
   await page.setDefaultNavigationTimeout(0); 
@@ -35,15 +28,14 @@ var IPGeolocationAPI = require('ip-geolocation-api-javascript-sdk');
   const tst9 = tst8.replaceAll('tr','')
   const tst10 = tst9.replaceAll('style=height: 38px;','')
   const tst11 = tst10.replaceAll('style=height: 19px;','')
-
   const splitString = tst11.split("  ");
-
-  var indice = splitString.indexOf('')
+  let indice = splitString.indexOf('')
   
   while(indice >= 0){
     splitString.splice(indice, 1);
     indice = splitString.indexOf('');
   }
+
 
   function separar(base, max) {
     var res = [];
@@ -61,54 +53,78 @@ var IPGeolocationAPI = require('ip-geolocation-api-javascript-sdk');
     arr.push(el[3])
   })
 
-   const sites = []
+   const asns = []
    const empresas = []
    let htmlSite = ''
+//Acessar ASNS
    for (let index = 0; index < arr.length; index++) {
-   arr[index] = arr[index].replace(' ','')
-   if (arr[index] === 'Lei Telecom'){arr[index] = 'Lci Telecom'}
-   empresas.push(arr[index])
-   arr[index] = arr[index].replace(' ','+')
-   let valor = arr[index] 
-   if(index === 0){valor = `${arr[index]}+provedor+de+internet+acre`}
-    if (index === 10) { valor = `${arr[index]}+provedor+de+internet+mato+grosso` }
-   await page.goto(`https://www.google.com/search?q=${valor}&rlz=1C1GCEU_pt-BRBR999BR999&oq=vivo&aqs=chrome..69i57j46i199i291i433i512j0i433i512l2j0i131i433i512j0i433i512j69i61l2.574j0j7&sourceid=chrome&ie=UTF-8`);
-   htmlSite = await page.evaluate(() => {
-     return {
-      siteProvedor : document.querySelector('.iUh30.tjvcx').innerHTML}
-   });
-  sites.push(htmlSite.siteProvedor.replace('https://',''))
- }
- const page2 = await browser.newPage();
- await page2.setDefaultNavigationTimeout(0); 
-
-
-  let ips = []
-  let asn = ''
-  
-  for (let index = 0; index < sites.length; index++) {
-    await page2.goto(`https://ipgeolocation.io/ip-location/${sites[index]}`);  
+    arr[index] = arr[index].replace(' ','')
+    if (arr[index] === 'Lei Telecom'){arr[index] = 'Lci Telecom'}
+    empresas.push(arr[index])
+    arr[index] = arr[index].replace(' ','+')
+    valor = arr[index] 
+    await page.goto(`https://www.google.com/search?q=${valor}+bgp+asn&rlz=1C1GCEU_pt-BRBR999BR999&sxsrf=APq-WBtv-2EXEMXxTJSTi9XwIvaDunQC7A%3A1649247906531&ei=ooZNYqiGIPWE1sQPkLGGuA4&ved=0ahUKEwio3_Wct__2AhV1gpUCHZCYAecQ4dUDCA4&uact=5&oq=Brisanet+asn&gs_lcp=Cgdnd3Mtd2l6EAMyBAgAEB5KBAhBGABKBAhGGABQAFgAYLoGaABwAHgAgAGdAYgBnQGSAQMwLjGYAQCgAQKgAQHAAQE&sclient=gws-wiz`);
     htmlSite = await page.evaluate(() => {
       return {
-       ip : document.querySelector('#ipaddrs').innerHTML}
+       siteProvedor : document.querySelector('.LC20lb.MBeuO.DKV0Md').innerText}
     });
-    await page2.goto(`https://ipinfo.io/${htmlSite.ip}`);
-    await page2.screenshot({ path: 'example.png' });
-
-    asn = await page2.evaluate(() => {
-      return {
-       asnCode : document.querySelector('.table.table-striped.table-borderless.table-sm.two-column-table.mb-0 a').innerHTML,
-       company: document.querySelector('tbody :nth-child(4) :nth-child(2)').innerHTML,
-       email: document.querySelector('tbody :nth-child(9) :nth-child(2) a').innerHTML,
-       city: document.querySelector('table.table-borderless.table-xs.geo-table tbody :nth-child(1) :nth-child(2)').innerHTML,
-       state: document.querySelector('table.table-borderless.table-xs.geo-table tbody :nth-child(2) :nth-child(2)').innerHTML,
-       country: document.querySelector('table.table-borderless.table-xs.geo-table tbody :nth-child(3) :nth-child(2) a').innerHTML,
-       Postal_Code: document.querySelector('table.table-borderless.table-xs.geo-table tbody :nth-child(4) :nth-child(2)').innerHTML,       
-      }
-    });
-    ips.push(asn)
+    asns.push(htmlSite.siteProvedor.split(' ', 1))
   }
+  //Fim Acessar ASNS
+
+
   
+  let asnData = []
+  let asnDataManip = []
+  let titular = ''
+  let cnpj = ''
+  let pais = ''
+  let email = ''
+  let ips = ''
+  let ipsManip = ''
+
+  //Acessar dados ASNS
+  for (let index = 0; index < asns.length; index++) {
+
+  await page.goto(`https://registro.br/tecnologia/ferramentas/whois/?search=${asns[index]}`);
+  await page.waitForSelector('.font-3 strong', {visible: true})
+  await page.click('button');
+  await page.screenshot({ path: 'example.png' });
+  titular = await page.evaluate(() => {
+    el = document.querySelector('.cell-owner')
+    return el ? el.innerText : '' 
+ });
+ cnpj = await page.evaluate(() => {
+  el = document.querySelector('.cell-ownerid')
+  return el ? el.innerText : '' 
+});
+pais = await page.evaluate(() => {
+  el = document.querySelector('.cell-country')
+  return el ? el.innerText : '' 
+});
+email = await page.evaluate(() => {
+  el = document.querySelector('.cell-emails')
+  return el ? el.innerText : '' 
+});
+ips = await page.evaluate(() => {
+  el = document.querySelector('.list ul')
+  return el ? el.innerText.split('/') : '' 
+});
+ipsManip = ips
+for (let index = 1; index < ipsManip.length; index++) {
+  ipsManip[index] = ipsManip[index].substring(2)
+}
+indice = ipsManip.indexOf('')
+  while(indice >= 0){
+    ipsManip.splice(indice, 1);
+    indice = ipsManip.indexOf('');
+  }
+asnDataManip = {asn: asns[index][0],titular:titular, cnpj:cnpj,pais:pais,email:email,ips:ipsManip }
+
+asnData.push(asnDataManip)
+}
+//Fim acessar dados ASNS
+  console.log(asnData)
  await browser.close();
 
 })(); 
