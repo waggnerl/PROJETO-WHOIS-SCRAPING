@@ -1,5 +1,6 @@
 const puppeteer = require('puppeteer');
 const replaceAll = require('string.prototype.replaceall');
+const axios = require('./services/axios');
 
 (async () => {
   const browser = await puppeteer.launch();
@@ -52,6 +53,7 @@ const replaceAll = require('string.prototype.replaceall');
   data.forEach(el=>{
     arr.push(el[3])
   })
+  //Fim Pesquisa provedor por estado
 
    const asns = []
    const empresas = []
@@ -72,10 +74,9 @@ const replaceAll = require('string.prototype.replaceall');
   }
   //Fim Acessar ASNS
 
-
-  
   let asnData = []
   let asnDataManip = []
+  let asn = ''
   let titular = ''
   let cnpj = ''
   let pais = ''
@@ -110,21 +111,25 @@ ips = await page.evaluate(() => {
   el = document.querySelector('.list ul')
   return el ? el.innerText.split('/') : '' 
 });
-ipsManip = ips
-for (let index = 1; index < ipsManip.length; index++) {
-  ipsManip[index] = ipsManip[index].substring(2)
+
+  asn = asns[index][0]
+asnDataManip = {asn: asns[index][0],titular:titular, cnpj:cnpj,pais:pais,email:email }
+
+try {
+  await axios.post('/data', {
+    asn: asn,
+    titular:titular,
+    cnpj:cnpj,
+    pais:pais,
+    email:email  
+})} catch (err) {
+  console.log(err)
 }
-indice = ipsManip.indexOf('')
-  while(indice >= 0){
-    ipsManip.splice(indice, 1);
-    indice = ipsManip.indexOf('');
-  }
-asnDataManip = {asn: asns[index][0],titular:titular, cnpj:cnpj,pais:pais,email:email,ips:ipsManip }
 
 asnData.push(asnDataManip)
 }
+
 //Fim acessar dados ASNS
-  console.log(asnData)
  await browser.close();
 
 })(); 
