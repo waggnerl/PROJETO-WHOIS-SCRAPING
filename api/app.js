@@ -8,7 +8,7 @@ const helmet = require("helmet");
 const delay = require("express-delay");
 
 
-const cadastroRoutes = require("./src/routes/cadastroRoutes");
+const dataRoutes = require("./src/routes/dataRoutes")
 
 const whiteList = ["http://localhost:3001"];
 
@@ -37,7 +37,7 @@ class App {
   }
   routes() {
 
-    this.app.use("/cadastro/", cadastroRoutes);
+    this.app.use("/data/", dataRoutes);
   }
 }
 
